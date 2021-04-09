@@ -32,6 +32,19 @@ coordsE = [3,5]
 # Choice Array False means not possible, True is possible [Move North, Move West, Move East, Move South, Pickup, Dropoff]
 choices = [True, False, True, False, False, False]
 
+# Restart the game
+def restart():
+    ij[0] = 5
+    ij[1] = 1
+    x = 0 
+    a = 0 
+    b = 0 
+    c = 0 
+    d = 8 
+    e = 8 
+    f = 0 
+
+
 # Assigns a reward based on action taken, moving is -1 and picking up or dropping off blocks are worth 13
 def giveReward(action):
     if(action == "Movement North" or action == "Movement West" or action == "Movement South" or action == "Movement East"):
@@ -85,7 +98,6 @@ def movement(movement):
         ij[1] = ij[1] + 1
     else:
         ij[1] = ij[1] - 1
-
 
 # PRandom choice maker
 def PRandom():
