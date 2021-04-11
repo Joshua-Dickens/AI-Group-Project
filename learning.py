@@ -7,8 +7,8 @@ class environment:
         # storing tuples in a list allows us to change the pickup and dropoff locations later
         self.pickupLocations = [(4, 2), (3, 5)]
         self.dropoffLocations = [(1, 1), (1, 5), (3, 3), (5, 5)]
-        self.pickupValues = [8, 8]
-        self.dropoffValues = [0, 0, 0, 0]
+        self.pickUpValues = [8, 8]
+        self.dropOffValues = [0, 0, 0, 0]
         # Q-table maps a (state, action) pair to a utility
         self.QTable = np.zeros(NUM_STATES, NUM_OPERATORS)
         self.bot = agent()
