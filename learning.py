@@ -2,121 +2,171 @@ import numpy as np
 import random
 
 class environment:
-    def __init__(self, NUM_STATES, NUM_OPERATORS):
-        # we should use tuples for coordinates since they are immutable
-        # storing tuples in a list allows us to change the pickup and dropoff locations later
-        self.pickupLocations = [(4, 2), (3, 5)]
-        self.dropoffLocations = [(1, 1), (1, 5), (3, 3), (5, 5)]
-        self.pickUpValues = [8, 8]
-        self.dropOffValues = [0, 0, 0, 0]
-        # Q-table maps a (state, action) pair to a utility
-        self.QTable = np.zeros(NUM_STATES, NUM_OPERATORS)
-        self.bot = agent()
+	def __init__(self, NUM_STATES, NUM_OPERATORS):
+		# we should use tuples for coordinates since they are immutable
+		# storing tuples in a list allows us to change the pickup and dropoff locations later
+		self.pickupLocations = [(4, 2), (3, 5)]
+		self.dropoffLocations = [(1, 1), (1, 5), (3, 3), (5, 5)]
+		self.pickUpValues = [8, 8]
+		self.dropOffValues = [0, 0, 0, 0]
+		# Q-table maps a (state, action) pair to a utility
+		self.QTable = np.zeros(500, 6)
+		self.bot = agent()
 
 class state:
-    def __init__(self):
-        self.position = [5, 1]              # agent starts in bottom left
-        self.agentCarryingBlock = False     # agent starts empty-handed
-        self.firstPickupEmpty = False       # both pickup locations start with 8 blocks
-        self.secondPickupEmpty = False
-        self.firstDropoffFull = False       # all dropoff locations start empty, max capacity 4 blocks
-        self.secondDropoffFull = False
-        self.thirdDropoffFull = False
-        self.fourthDropoffFull = False
-        
-    def getOperators(self):
-        # return a list of valid operators in the current state
-        index = hash(self.state);
-        operators = QTable[index]
+	def __init__(self):
+		self.position = [5, 1]              				# agent starts in bottom left
+		self.agentCarryingBlock = False     				# agent starts empty-handed
+		self.pickupEmpty = [False, False]					# both pickup locations start with 8 blocks
+		self.dropoffFull = [False, False, False, False] 	# all dropoff locations start empty, max capacity 4 blocks
 
-        # remove inapplicable operators
-        if self.position[0] == 1:
-            # remove north operator
-        if self.position[0] == 5:
-            # remove south operator
-        if self.position[0] == 1:
-            # remove west operator
-        if self.position[1] == 5:
-            # remove east operator
+	def getOperators(self):
+		# return a dictionary of {operator: utility} mappings
+		index = hash(self.state)
+		operatorUtilities = QTable[index]
+		operators = {}
 
-        # TODO: check if pickup and dropoff operators are valid
-        # easiest way to do this is to get the index of the element in the pickup or dropoff list
-        # if index is -1, remove the operator
-        # otherwise, check if dropoffFull or pickupEmpty
+		# add applicable operators
+		if self.position[0] > 1:
+			operators['north'] = operatorUtilities[0]
+		if self.position[1] < 5:
+			operators['east'] = operatorUtilities[1]
+		if self.position[0] < 1:
+			operators['south'] = operatorUtilities[2]
+		if self.position[1] > 1:
+			operators['west'] = operatorUtilities[3]
 
-    def hashState(self):
-        # return a value between 0 and 499 that can be used to index into the QTable
-        index = 0
-        index += 5*self.position[0] + self.position[1] # offset for position (1, 1) -> (1, 2) -> (1, 3) -> ...
-        if self.agentCarryingBlock ==  False:
-            index += 25*(self.firstPickupEmpty + self.firstPickupEmpty*2)
-        else:
-            index += 25*(4 + self.firstDropoffFull + self.secondDropoffFull*2 + 
-            self.thirdDropoffFull*4 + self.fourthDropoffFull*8)
+		if self.agentCarryingBlock == False:
+			if self.position in PDWorld.pickupLocations:
+				index = PDWorld.pickupLocations.index(self.position)
+				if pickupEmpty[index] == False:
+					operators['pickup'] = operatorUtilities[4]
+		else:
+			if self.position in PDWorld.dropoffLocations:
+				index = PDWorld.dropoffLocations.index(self.position)
+				if dropoffFull[index] == True:
+					operators['dropoff'] = operatorUtilities[5]
+
+		return operators
+
+	def hashState(self):
+		# return a value between 0 and 499 that can be used to index into the QTable
+		index = 0
+		index += 5*self.position[0] + self.position[1] # offset for position (1, 1) -> (1, 2) -> (1, 3) -> ...
+		if self.agentCarryingBlock ==  False:
+			index += 25*(self.firstPickupEmpty + self.firstPickupEmpty*2)
+		else:
+			index += 25*(4 + self.firstDropoffFull + self.secondDropoffFull*2 + 
+			self.thirdDropoffFull*4 + self.fourthDropoffFull*8)
 
 class agent:
-    def __init__(self):
-        self.currentState = state()
-        self.bankAccount = 0 # keeps track of cumulative reward
-    
-    def step(self):
-        # execute policy to make one action
-        self.policy()
+	def __init__(self):
+		self.currentState = state()
+		self.bankAccount = 0 # keeps track of cumulative reward
+		self.learningRate = 0.3
+		self.discountFactor = 0.5
+	
+	def step(self):
+		# execute policy to make one action and update q value
+		# returns 1 if agent delivered all items, 0 otherwise
+		previousState = self.currentState
 
-    # Define policies
-    def PRandom():
-        # return a random operator at the current state
-        self.currentState.getOperators()
-        # get next state 
-        nextState = self.currentState
-        self.QLearn()
+		operationMapping = {'goNorth': self.goNorth, 'goEast': self.goEast, 'goSouth': self.goSouth, 'goWest': self.goWest, 'pickup': self.pickupBlock, 'dropoff': self.dropoffBlock}
+		operator = self.policy()
+		reward = operationMapping[operator] # execute operation -- state has now changed!
 
-    def PGreedy():
-        # return the operator with maximum utility at the current state
-        self.currentState.getOperators()
-        self.QLearn()
+		QLearn(operator, previousState, self.currentState, reward)
 
-    def PExploit():
-        # 0.2 probability of using PRandom, 0.8 probability of using PGreedy
-        if random.uniform(0, 1) < 0.2:
-            PRandom()
-        else:
-            PGreedy()
+		# if final state reached, re-initialize the current state
+		if (all(self.currentState.pickupEmpty) and all(self.currentState.dropoffFull)):
+			self.currentState = state()
+			return 1
 
-    def setPolicy(self, func):
-        self.policy = func
+		return 0
 
-    # Define operators -- note that all operators are checked in advance by getOperators()
-    def goNorth(self):
-        self.currentState.position[0] -= 1
-        self.bankAccount -= 1
-        return -1
-    def goEast():
-        self.currentState.position[1] += 1
-        self.bankAccount -= 1
-        return -1
-    def goSouth():
-        self.currentState.position[0] += 1
-        self.bankAccount -= 1
-        return -1
-    def goWest():
-        self.currentState.position[1] -= 1
-        self.bankAccount -= 1
-        return -1
-    def pickupBlock():
-        # determine which pickup location the agent is on
-        self.currentState.position
+	# Define policies
+	def PRandom():
+		# return a random operator at the current state
+		operators = self.currentState.getOperators()
+		item = random.choice(list(operators.items()))
+		return item[0]
 
-        return 13
-    def dropoffBlock():
-        # determine which dropoff location the agent is on
-        self.currentState.position
+	def PGreedy():
+		# return the operator with maximum utility at the current state
+		self.currentState.getOperators()
+		maxValue = max(dict.values())
+		operators = [key for key, value in result.items() if value == maxValue]
+		return random.choice(operators)
 
-        return 13
+	def PExploit():
+		# 0.2 probability of using PRandom, 0.8 probability of using PGreedy
+		if random.uniform(0, 1) < 0.2:
+			return PRandom()
+		else:
+			return PGreedy()
 
-    def QLearn(self):
-        # update QTable
+	def setPolicy(self, func):
+		self.policy = func
+
+	# Define operators -- note that all operators are checked in advance by getOperators()
+	def goNorth(self):
+		self.currentState.position[0] -= 1
+		self.bankAccount -= 1
+		return -1
+	def goEast():
+		self.currentState.position[1] += 1
+		self.bankAccount -= 1
+		return -1
+	def goSouth():
+		self.currentState.position[0] += 1
+		self.bankAccount -= 1
+		return -1
+	def goWest():
+		self.currentState.position[1] -= 1
+		self.bankAccount -= 1
+		return -1
+	def pickupBlock():
+		# determine which pickup location the agent is on
+		self.currentState.position
+		return 13
+	def dropoffBlock():
+		# determine which dropoff location the agent is on
+		self.currentState.position
+		return 13
+
+	def QLearn(self, operator, previousState, nextState, reward):
+		# update QTable entry of applying operator to previousState
+		# utility <- (1 - learningRate) * utility + learningRate * (reward + discountFactor * max utility over all operators in nextState)
+
+		# get original utility of previousState
+		indexDict = {'north': 0, 'east': 1, 'south': 2, 'west': 3, 'pickup': 4, 'dropoff': 5}
+		operatorIndex = indexDict[operator]
+		stateIndex = self.previousState.hashState()
+		oldUtility = PDWorld.QTable[stateIndex][operatorIndex]
+
+		# get max utility of nextState
+		nextStateOperators = nextState.getOperators()
+		maxUtility = max(nextStateOperators.values())
+		
+		# apply Q-learning to utility of operator at previousState
+		newUtility = (1 - self.learningRate) * oldUtility + self.learningRate * (reward + self.discountFactor * maxUtility)
+		PDWorld.QTable[stateIndex][operatorIndex] = newUtility
+
+	def SARSALearn(self, operator, previousState, nextState):
+		# update QTable entry of applying operator to previousState
 
 
 if __name__ == "__main__":
-    PDWorld = environment(500, 6)
+	PDWorld = environment()
+	PDWorld.bot.setPolicy(PDWorld.bot.PRandom)
+
+	agentReward = []
+
+	for _ in range(500):
+		PDWorld.bot.step()
+		agentReward += PDWorld.bot.bankAccount
+
+	PDWorld.bot.setPolicy(PDWorld.bot.PGreedy)
+	for _ in range(5500):
+		PDWorld.bot.step()
+		agentReward += PDWorld.bot.bankAccount
