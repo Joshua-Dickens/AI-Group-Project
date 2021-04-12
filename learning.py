@@ -97,10 +97,15 @@ class agent:
 			return 'pickup'
 		elif 'dropoff' in operators:
 			return 'dropoff'
-		return random.choice(list(operators.items()))[0]
+		else:
+			return random.choice(list(operators.items()))[0]
 	def PGreedy(self):
 		# return the operator with maximum utility at the current state
 		op = self.currentState.getOperators()
+		if 'pickup' in op:
+			return 'pickup'
+		elif 'dropoff' in op:
+			return 'dropoff'
 		maxValue = max(op.values())
 		operators = [key for key, value in op.items() if value == maxValue]
 		return random.choice(operators)
@@ -198,7 +203,7 @@ if __name__ == "__main__":
 		agentReward.append(PDWorld.bot.bankAccount)
 	
 	
-	PDWorld.bot.setPolicy(PDWorld.bot.PExploit)
+	PDWorld.bot.setPolicy(PDWorld.bot.PRandom)
 	for _ in range(6000):
 		if PDWorld.bot.step():
 			epochs += 1
