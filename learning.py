@@ -1,7 +1,7 @@
 import numpy as np
 import random
 import plot
-from copy import copy
+from copy import deepcopy
 
 class environment:
 	def __init__(self, debug = False):
@@ -83,7 +83,7 @@ class agent:
 			input('Press enter to continue')
 
 		# save previous state info
-		previousState = copy(self.currentState)
+		previousState = deepcopy(self.currentState)
 
 		functionMapping = {'north': self.goNorth, 'east': self.goEast, 'south': self.goSouth, 'west': self.goWest, 'pickup': self.pickupBlock, 'dropoff': self.dropoffBlock}
 		operator = self.policy()
@@ -224,9 +224,7 @@ class agent:
 		PDWorld.QTable[stateIndex][operatorIndex] = newUtility
 		if PDWorld.debug == True:
 			print(f'Utility of operator {operator} at state {stateIndex} is now {newUtility}')
-			if input('Would you like to display the QTable? (answer y/Y)') == 'y' or 'Y':
-				layer = input('Select layer to display (0 - 19)')
-				plot.plotQTable(PDWorld.QTable, layer)
+			input('Press enter to start next step')
 
 	def SARSALearn(self, operator, previousState, nextState, reward):
 		# update QTable entry of applying operator from policy to previousState
