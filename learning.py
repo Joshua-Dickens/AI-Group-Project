@@ -81,6 +81,8 @@ class agent:
 
 		# if final state reached, re-initialize the current state
 		if (all(self.currentState.pickupEmpty) and all(self.currentState.dropoffFull)):
+			PDWorld.pickupValues = [8, 8]
+			PDWorld.dropoffValues = [0, 0, 0, 0]
 			self.currentState = state()
 			self.bankAccount = 0
 			return 1
@@ -91,6 +93,10 @@ class agent:
 	def PRandom(self):
 		# return a random operator at the current state
 		operators = self.currentState.getOperators()
+		if 'pickup' in operators:
+			return 'pickup'
+		elif 'dropoff' in operators:
+			return 'dropoff'
 		return random.choice(list(operators.items()))[0]
 	def PGreedy(self):
 		# return the operator with maximum utility at the current state
@@ -177,9 +183,11 @@ if __name__ == "__main__":
 	
 	
 	PDWorld.bot.setPolicy(PDWorld.bot.PExploit)
-	for _ in range(5500):
+	for _ in range(50000):
 		if PDWorld.bot.step():
 			epochs += 1
+			print(PDWorld.dropoffValues)
+			print(PDWorld.pickupValues)
 		agentReward.append(PDWorld.bot.bankAccount)
 	
 	print('number of complete deliveries: ', epochs)
