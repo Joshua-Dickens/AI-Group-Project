@@ -105,6 +105,8 @@ class agent:
 
 		self.QLearn(operator, previousState, self.currentState, reward)
 
+		# TODO: plot QTable if first dropoff location reached
+
 		# if final state reached, re-initialize the current state
 		if (all(self.currentState.pickupEmpty) and all(self.currentState.dropoffFull)):
 			if PDWorld.debug == True:
@@ -253,6 +255,7 @@ if __name__ == "__main__":
 			epochStart = i
 			agentReward.append(PDWorld.bot.bankAccount)
 			PDWorld.bot.bankAccount = 0
+			# TODO: plot Q table when terminal state reached
 	
 	PDWorld.bot.setPolicy(PDWorld.bot.PExploit)
 	for i in range(500, 6000):
@@ -261,6 +264,7 @@ if __name__ == "__main__":
 			epochStart = i
 			agentReward.append(PDWorld.bot.bankAccount)
 			PDWorld.bot.bankAccount = 0
+			# TODO: plot Q table when terminal state reached
 	
 	"""
 	print(f'number of complete deliveries: {len(epochTime)}')
