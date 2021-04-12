@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import plot
+from copy import copy
 
 class environment:
 	def __init__(self, debug = False):
@@ -82,7 +83,7 @@ class agent:
 			input('Press enter to continue')
 
 		# save previous state info
-		previousState = self.currentState
+		previousState = copy(self.currentState)
 
 		functionMapping = {'north': self.goNorth, 'east': self.goEast, 'south': self.goSouth, 'west': self.goWest, 'pickup': self.pickupBlock, 'dropoff': self.dropoffBlock}
 		operator = self.policy()
