@@ -1,5 +1,6 @@
 import numpy as np
 import random
+import plot
 
 class environment:
 	def __init__(self):
@@ -195,22 +196,30 @@ if __name__ == "__main__":
 	PDWorld.bot.setPolicy(PDWorld.bot.PRandom)
 
 	agentReward = []
-	epochs = 0
+	epoch = []
+	epochStart = 0
 
-	for _ in range(500):
+	for i in range(500):
 		if PDWorld.bot.step():
-			epochs += 1
+			epoch.append(i - epochStart)
+			epochStart = i
 		agentReward.append(PDWorld.bot.bankAccount)
 	
 	
-	PDWorld.bot.setPolicy(PDWorld.bot.PRandom)
-	for _ in range(6000):
+	PDWorld.bot.setPolicy(PDWorld.bot.PExploit)
+	for i in range(500, 6000):
 		if PDWorld.bot.step():
-			epochs += 1
+			epoch.append(i - epochStart)
+			epochStart = i
 		agentReward.append(PDWorld.bot.bankAccount)
 	
-	print('number of complete deliveries: ', epochs)
-	print('drop off values: ', PDWorld.dropoffValues)
-	print('pick up values: ', PDWorld.pickupValues)
+	print('number of complete deliveries: ', len(epoch))
+	print('drop-off values: ', PDWorld.dropoffValues)
+	print('pick-up values: ', PDWorld.pickupValues)
 	print('agent holding block: ', PDWorld.bot.currentState.agentCarryingBlock)
-	
+	print('epoch: ', epoch)
+
+	print(PDWorld.QTable[0:25])
+
+	# plot first layer of QTable
+	plot.plotQTable(PDWorld.QTable, 0)
