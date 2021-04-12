@@ -7,18 +7,17 @@ class environment:
 		# storing tuples in a list allows us to change the pickup and dropoff locations later
 		self.pickupLocations = [(4, 2), (3, 5)]
 		self.dropoffLocations = [(1, 1), (1, 5), (3, 3), (5, 5)]
-		self.pickUpValues = [8, 8]
-		self.dropOffValues = [0, 0, 0, 0]
+		self.pickupValues = [8, 8]
+		self.dropoffValues = [0, 0, 0, 0]
 		# Q-table maps a (state, operator) pair to a utility
 		self.QTable = np.zeros([500, 6]) # TODO: add function to export this table to a .csv
 		self.bot = agent()
 
 class state:
 	def __init__(self):
-		self.position = [5, 1]              				# agent starts in bottom left
-		self.agentCarryingBlock = False     				# agent starts empty-handed
+		self.position = [5, 1]								# agent starts in bottom left
+		self.agentCarryingBlock = False						# agent starts empty-handed
 		self.pickupEmpty = [False, False]					# both pickup locations start with 8 blocks
-		# TODO: change these if agent operation is pickup or dropoff
 		self.dropoffFull = [False, False, False, False] 	# all dropoff locations start empty, max capacity 4 blocks
 
 	def getOperators(self):
@@ -32,19 +31,19 @@ class state:
 			operators['north'] = operatorUtilities[0]
 		if self.position[1] < 5:
 			operators['east'] = operatorUtilities[1]
-		if self.position[0] < 1:
+		if self.position[0] < 5:
 			operators['south'] = operatorUtilities[2]
 		if self.position[1] > 1:
 			operators['west'] = operatorUtilities[3]
 
 		if self.agentCarryingBlock == False:
-			if self.position in PDWorld.pickupLocations:
-				index = PDWorld.pickupLocations.index(self.position)
+			if tuple(self.position) in PDWorld.pickupLocations:
+				index = PDWorld.pickupLocations.index(tuple(self.position))
 				if self.pickupEmpty[index] == False:
 					operators['pickup'] = operatorUtilities[4]
 		else:
-			if self.position in PDWorld.dropoffLocations:
-				index = PDWorld.dropoffLocations.index(self.position)
+			if tuple(self.position) in PDWorld.dropoffLocations:
+				index = PDWorld.dropoffLocations.index(tuple(self.position))
 				if self.dropoffFull[index] == False:
 					operators['dropoff'] = operatorUtilities[5]
 
@@ -73,10 +72,10 @@ class agent:
 		# returns 1 if agent delivered all items, 0 otherwise
 		previousState = self.currentState
 
-		functionMapping = {'north': self.goNorth(), 'east': self.goEast(), 'south': self.goSouth(), 'west': self.goWest(), 'pickup': self.pickupBlock(), 'dropoff': self.dropoffBlock()}
+		functionMapping = {'north': self.goNorth, 'east': self.goEast, 'south': self.goSouth, 'west': self.goWest, 'pickup': self.pickupBlock, 'dropoff': self.dropoffBlock}
 		operator = self.policy()
 
-		reward = functionMapping[operator] # execute operation -- state has now changed!
+		reward = functionMapping[operator]() # execute operation -- state has now changed!
 
 		self.QLearn(operator, previousState, self.currentState, reward)
 
@@ -128,15 +127,19 @@ class agent:
 		return -1
 	def pickupBlock(self):
 		# determine which pickup location the agent is on
-		location = PDWorld.pickupLocations.index(self.currentState.position)
-		PDWorld.pickUpValues[location] -= 1
-		self.currentState.pickupEmpty[location] = PDWorld.pickUpValues[location] > 0
+		location = PDWorld.pickupLocations.index(tuple(self.currentState.position))
+		PDWorld.pickupValues[location] -= 1
+		self.currentState.pickupEmpty[location] = PDWorld.pickupValues[location] == 0
+		self.currentState.agentCarryingBlock = True
+		self.bankAccount += 13
 		return 13
 	def dropoffBlock(self):
 		# determine which dropoff location the agent is on
-		location = PDWorld.dropoffLocations.index(self.currentState.position)
-		PDWorld.dropoffLocations[location] += 1
-		self.currentState.dropoffFull[location] = PDWorld.dropOffValues[location] < 4
+		location = PDWorld.dropoffLocations.index(tuple(self.currentState.position))
+		PDWorld.dropoffValues[location] += 1
+		self.currentState.dropoffFull[location] = PDWorld.dropoffValues[location] == 4
+		self.currentState.agentCarryingBlock = False
+		self.bankAccount += 13
 		return 13
 
 	def QLearn(self, operator, previousState, nextState, reward):
@@ -165,12 +168,22 @@ if __name__ == "__main__":
 	PDWorld.bot.setPolicy(PDWorld.bot.PRandom)
 
 	agentReward = []
+	epochs = 0
 
 	for _ in range(500):
-		PDWorld.bot.step()
-		agentReward += PDWorld.bot.bankAccount
-
-	PDWorld.bot.setPolicy(PDWorld.bot.PGreedy)
+		if PDWorld.bot.step():
+			epochs += 1
+		agentReward.append(PDWorld.bot.bankAccount)
+	
+	
+	PDWorld.bot.setPolicy(PDWorld.bot.PExploit)
 	for _ in range(5500):
-		PDWorld.bot.step()
-		agentReward += PDWorld.bot.bankAccount
+		if PDWorld.bot.step():
+			epochs += 1
+		agentReward.append(PDWorld.bot.bankAccount)
+	
+	print('number of complete deliveries: ', epochs)
+	print('drop off values: ', PDWorld.dropoffValues)
+	print('pick up values: ', PDWorld.pickupValues)
+	print('agent holding block: ', PDWorld.bot.currentState.agentCarryingBlock)
+	
