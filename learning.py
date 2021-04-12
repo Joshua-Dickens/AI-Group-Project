@@ -3,7 +3,7 @@ import random
 import plot
 
 class environment:
-	def __init__(self):
+	def __init__(self, debug = False):
 		# we should use tuples for coordinates since they are immutable
 		# storing tuples in a list allows us to change the pickup and dropoff locations later
 		self.pickupLocations = [(4, 2), (3, 5)]
@@ -13,6 +13,7 @@ class environment:
 		# Q-table maps a (state, operator) pair to a utility
 		self.QTable = np.zeros([500, 6]) # TODO: add function to export this table to a .csv
 		self.bot = agent()
+		self.debug = debug
 
 class state:
 	def __init__(self):
@@ -71,17 +72,41 @@ class agent:
 	def step(self):
 		# execute policy to make one action and update q value
 		# returns 1 if agent delivered all items, 0 otherwise
+		if PDWorld.debug == True:
+			print('Step function')
+			print(f'Agent account is {self.bankAccount}')
+			print('Agent is in position ', self.currentState.position)
+			print(f'Pickup location availabilies are {[not i for i in self.currentState.pickupEmpty]}')
+			print(f'Dropoff location availabilies are {[not i for i in self.currentState.dropoffFull]}')
+			print(f'QTable index is {self.currentState.hashState()}')
+			input('Press enter to continue')
+
+		# save previous state info
 		previousState = self.currentState
 
 		functionMapping = {'north': self.goNorth, 'east': self.goEast, 'south': self.goSouth, 'west': self.goWest, 'pickup': self.pickupBlock, 'dropoff': self.dropoffBlock}
 		operator = self.policy()
+		if PDWorld.debug == True:
+			print(f'Agent will execute {operator}')
+			input('Press enter to continue')
 
 		reward = functionMapping[operator]() # execute operation -- state has now changed!
+		if PDWorld.debug == True:
+			print('Step function')
+			print(f'Agent account is now {self.bankAccount}')
+			print('Agent is now in position ', self.currentState.position)
+			print(f'New pickup location availabilies are {[not i for i in self.currentState.pickupEmpty]}')
+			print(f'New dropoff location availabilies are {[not i for i in self.currentState.dropoffFull]}')
+			print(f'New QTable index is {self.currentState.hashState()}')
+			input('Press enter to continue')
 
 		self.QLearn(operator, previousState, self.currentState, reward)
 
 		# if final state reached, re-initialize the current state
 		if (all(self.currentState.pickupEmpty) and all(self.currentState.dropoffFull)):
+			if PDWorld.debug == True:
+				print('Agent has delivered final package -- resetting world')
+				print('Press enter to continue')
 			PDWorld.pickupValues = [8, 8]
 			PDWorld.dropoffValues = [0, 0, 0, 0]
 			self.currentState = state()
@@ -94,6 +119,10 @@ class agent:
 	def PRandom(self):
 		# return a random operator at the current state
 		operators = self.currentState.getOperators()
+		if PDWorld.debug == True:
+			print('Agent policy is PRandom')
+			print('Agent action(s) is/are ', operators)
+		
 		if 'pickup' in operators:
 			return 'pickup'
 		elif 'dropoff' in operators:
@@ -103,6 +132,9 @@ class agent:
 	def PGreedy(self):
 		# return the operator with maximum utility at the current state
 		op = self.currentState.getOperators()
+		if PDWorld.debug == True:
+			print('Agent policy is PGreedy')
+			print('Agent action(s) is/are ', op)
 		if 'pickup' in op:
 			return 'pickup'
 		elif 'dropoff' in op:
@@ -111,6 +143,8 @@ class agent:
 		operators = [key for key, value in op.items() if value == maxValue]
 		return random.choice(operators)
 	def PExploit(self):
+		if PDWorld.debug == True:
+			print('Agent policy is PExploit')
 		# 0.2 probability of using PRandom, 0.8 probability of using PGreedy
 		if random.uniform(0, 1) < 0.2:
 			return self.PRandom()
@@ -154,23 +188,44 @@ class agent:
 		self.bankAccount += 13
 		return 13
 
+	# Q-Learning function
 	def QLearn(self, operator, previousState, nextState, reward):
 		# update QTable entry of applying operator to previousState
 		# utility <- (1 - learningRate) * utility + learningRate * (reward + discountFactor * max utility over all operators in nextState)
+		
+		if PDWorld.debug == True:
+			print(f'Updating utility of operator {operator} in state {previousState.hashState()} with reward {reward} and terminal state {nextState.hashState()}')
+			input('Press enter to continue')
 
 		# get original utility of previousState
-		indexDict = {'north': 0, 'east': 1, 'south': 2, 'west': 3, 'pickup': 4, 'dropoff': 5}
-		operatorIndex = indexDict[operator]
-		stateIndex = previousState.hashState()
-		oldUtility = PDWorld.QTable[stateIndex][operatorIndex]
+		previousStateOperators = previousState.getOperators()
+		oldUtility = previousStateOperators[operator]
+		if PDWorld.debug == True:
+			print(f'Utilities of operators at state {previousState.hashState()} are {previousStateOperators}')
+			print(f'Utility of {operator} is {oldUtility}')
+			input('Press enter to continue')
 
 		# get max utility of nextState
 		nextStateOperators = nextState.getOperators()
 		maxUtility = max(nextStateOperators.values())
+		if PDWorld.debug == True:
+			print(f'Utilities of operators at state {nextState.hashState()} are {nextStateOperators}')
+			print(f'Max utility is {maxUtility}')
+			input('Press enter to continue')
 		
 		# apply Q-learning to utility of operator at previousState
 		newUtility = (1 - self.learningRate) * oldUtility + self.learningRate * (reward + self.discountFactor * maxUtility)
+
+		# update QTable
+		indexDict = {'north': 0, 'east': 1, 'south': 2, 'west': 3, 'pickup': 4, 'dropoff': 5}
+		operatorIndex = indexDict[operator]
+		stateIndex = previousState.hashState()
 		PDWorld.QTable[stateIndex][operatorIndex] = newUtility
+		if PDWorld.debug == True:
+			print(f'Utility of operator {operator} at state {stateIndex} is now {newUtility}')
+			if input('Would you like to display the QTable? (answer y/Y)') == 'y' or 'Y':
+				layer = input('Select layer to display (0 - 19)')
+				plot.plotQTable(PDWorld.QTable, layer)
 
 	def SARSALearn(self, operator, previousState, nextState, reward):
 		# update QTable entry of applying operator from policy to previousState
@@ -192,7 +247,7 @@ class agent:
 		PDWorld.QTable[stateIndex][operatorIndex] = newUtility
 
 if __name__ == "__main__":
-	PDWorld = environment()
+	PDWorld = environment(debug=True)
 	PDWorld.bot.setPolicy(PDWorld.bot.PRandom)
 
 	agentReward = []
