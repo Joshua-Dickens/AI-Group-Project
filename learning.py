@@ -67,8 +67,10 @@ class agent:
 	def __init__(self):
 		self.currentState = state()
 		self.bankAccount = 0 # keeps track of cumulative reward
-		self.learningRate = 0.3
-		self.discountFactor = 0.5
+	def setLearningRate(self, lr):
+		self.learningRate = lr
+	def setDiscountFactor(self, df):
+		self.discountFactor = df
 	
 	def step(self):
 		# execute policy to make one action and update q value
@@ -238,7 +240,9 @@ class agent:
 if __name__ == "__main__":
 	PDWorld = environment(debug=False)
 	PDWorld.bot.setPolicy(PDWorld.bot.PRandom)
-	PDWorld.bot.setLearn('QLearn')
+	PDWorld.bot.setLearn('SARSALearn')
+	PDWorld.bot.setLearningRate(0.3)
+	PDWorld.bot.setDiscountFactor(0.5)
 
 	agentReward = []
 	epoch = []
@@ -251,7 +255,7 @@ if __name__ == "__main__":
 		agentReward.append(PDWorld.bot.bankAccount)
 	
 	
-	PDWorld.bot.setPolicy(PDWorld.bot.PRandom)
+	PDWorld.bot.setPolicy(PDWorld.bot.PExploit)
 	for i in range(500, 6000):
 		if PDWorld.bot.step():
 			epoch.append(i - epochStart)
