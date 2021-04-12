@@ -166,8 +166,24 @@ class agent:
 		newUtility = (1 - self.learningRate) * oldUtility + self.learningRate * (reward + self.discountFactor * maxUtility)
 		PDWorld.QTable[stateIndex][operatorIndex] = newUtility
 
-	#def SARSALearn(self, operator, previousState, nextState):
-		# update QTable entry of applying operator to previousState
+	def SARSALearn(self, operator, previousState, nextState, reward):
+		# update QTable entry of applying operator from policy to previousState
+		# utility <- (1 - learningRate ) *utility + learningRate * (reward + discountFactor * utility of operator returned by applying policy to nextState)
+		
+		# get original utility of previousState
+		indexDict = {'north': 0, 'east': 1, 'south': 2, 'west': 3, 'pickup': 4, 'dropoff': 5}
+		operatorIndex = indexDict[operator]
+		stateIndex = previousState.hashState()
+		oldUtility = PDWorld.QTable[stateIndex][operatorIndex]
+
+		# get utility of applying operator returned by policy at nextState
+		nextStateOperators = nextState.getOperators()
+		nextOperator = self.policy()
+		nextUtility = nextStateOperators[nextOperator]
+		
+		# apply Q-learning to utility of operator at previousState
+		newUtility = (1 - self.learningRate) * oldUtility + self.learningRate * (reward + self.discountFactor * nextUtility)
+		PDWorld.QTable[stateIndex][operatorIndex] = newUtility
 
 if __name__ == "__main__":
 	PDWorld = environment()
@@ -183,11 +199,9 @@ if __name__ == "__main__":
 	
 	
 	PDWorld.bot.setPolicy(PDWorld.bot.PExploit)
-	for _ in range(50000):
+	for _ in range(6000):
 		if PDWorld.bot.step():
 			epochs += 1
-			print(PDWorld.dropoffValues)
-			print(PDWorld.pickupValues)
 		agentReward.append(PDWorld.bot.bankAccount)
 	
 	print('number of complete deliveries: ', epochs)
