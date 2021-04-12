@@ -50,3 +50,8 @@ def plotQTable(QTable, frame):
 	ax.set_aspect('equal', 'box')  # square cells
 	plt.tight_layout()
 	plt.show()
+
+def plotLineGraph(arr):
+	plt.plot(arr, linestyle='-', color='red')
+	plt.grid(b=True, axis='y', linestyle='--')
+	plt.show()

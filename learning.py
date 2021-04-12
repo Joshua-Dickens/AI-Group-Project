@@ -1,6 +1,6 @@
 import numpy as np
 import random
-import plot
+from plot import plotQTable, plotLineGraph
 from copy import deepcopy
 
 class environment:
@@ -113,7 +113,6 @@ class agent:
 			PDWorld.pickupValues = [8, 8]
 			PDWorld.dropoffValues = [0, 0, 0, 0]
 			self.currentState = state()
-			self.bankAccount = 0
 			return 1
 
 		return 0
@@ -240,35 +239,43 @@ class agent:
 if __name__ == "__main__":
 	PDWorld = environment(debug=False)
 	PDWorld.bot.setPolicy(PDWorld.bot.PRandom)
-	PDWorld.bot.setLearn('SARSALearn')
+	PDWorld.bot.setLearn('QLearn')
 	PDWorld.bot.setLearningRate(0.3)
 	PDWorld.bot.setDiscountFactor(0.5)
 
 	agentReward = []
-	epoch = []
+	epochTime = []
 	epochStart = 0
 
 	for i in range(500):
 		if PDWorld.bot.step():
-			epoch.append(i - epochStart)
+			epochTime.append(i - epochStart)
 			epochStart = i
-		agentReward.append(PDWorld.bot.bankAccount)
-	
+			agentReward.append(PDWorld.bot.bankAccount)
+			PDWorld.bot.bankAccount = 0
 	
 	PDWorld.bot.setPolicy(PDWorld.bot.PExploit)
 	for i in range(500, 6000):
 		if PDWorld.bot.step():
-			epoch.append(i - epochStart)
+			epochTime.append(i - epochStart)
 			epochStart = i
-		agentReward.append(PDWorld.bot.bankAccount)
+			agentReward.append(PDWorld.bot.bankAccount)
+			PDWorld.bot.bankAccount = 0
 	
-	print('number of complete deliveries: ', len(epoch))
-	print('drop-off values: ', PDWorld.dropoffValues)
-	print('pick-up values: ', PDWorld.pickupValues)
-	print('agent holding block: ', PDWorld.bot.currentState.agentCarryingBlock)
-	print('epoch: ', epoch)
-
-	# print(PDWorld.QTable[0:25])
+	"""
+	print(f'number of complete deliveries: {len(epochTime)}')
+	print(f'drop-off values: {PDWorld.dropoffValues}')
+	print(f'pick-up values: {PDWorld.pickupValues}')
+	print(f'agent holding block: {PDWorld.bot.currentState.agentCarryingBlock}')
+	print(f'epoch: {epochTime}')
+	print(PDWorld.QTable[0:25])
+	"""
 
 	# plot first layer of QTable
-	plot.plotQTable(PDWorld.QTable, 0)
+	plotQTable(PDWorld.QTable, 0)
+
+	# plot graph of agent reward
+	plotLineGraph(agentReward)
+
+	# plot graph of epoch time
+	plotLineGraph(epochTime)
