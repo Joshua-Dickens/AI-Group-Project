@@ -154,6 +154,8 @@ class agent:
 
 	def setPolicy(self, func):
 		self.policy = func
+	def setLearn(self, learn):
+		self.learning = learn
 
 	# Define operators -- note that all operators are checked in advance by getOperators()
 	def goNorth(self):
@@ -206,16 +208,23 @@ class agent:
 			print(f'Utility of {operator} is {oldUtility}')
 			input('Press enter to continue')
 
-		# get max utility of nextState
-		nextStateOperators = nextState.getOperators()
-		maxUtility = max(nextStateOperators.values())
-		if PDWorld.debug == True:
-			print(f'Utilities of operators at state {nextState.hashState()} are {nextStateOperators}')
-			print(f'Max utility is {maxUtility}')
-			input('Press enter to continue')
-		
-		# apply Q-learning to utility of operator at previousState
-		newUtility = (1 - self.learningRate) * oldUtility + self.learningRate * (reward + self.discountFactor * maxUtility)
+		if self.learning == 'QLearn':
+			# get max utility of nextState
+			nextStateOperators = nextState.getOperators()
+			maxUtility = max(nextStateOperators.values())
+			if PDWorld.debug == True:
+				print(f'Utilities of operators at state {nextState.hashState()} are {nextStateOperators}')
+				print(f'Max utility is {maxUtility}')
+				input('Press enter to continue')
+			# apply Q-learning to utility of operator at previousState
+			newUtility = (1 - self.learningRate) * oldUtility + self.learningRate * (reward + self.discountFactor * maxUtility)
+		elif self.learning == 'SARSALearn':
+			# get utility of applying operator returned by policy at nextState
+			nextStateOperators = nextState.getOperators()
+			nextOperator = self.policy()
+			nextUtility = nextStateOperators[nextOperator]
+			# Apply SARSA-learning to utility of operator at previousState
+			newUtility = (1 - self.learningRate) * oldUtility + self.learningRate * (reward + self.discountFactor * nextUtility)
 
 		# update QTable
 		indexDict = {'north': 0, 'east': 1, 'south': 2, 'west': 3, 'pickup': 4, 'dropoff': 5}
@@ -226,28 +235,10 @@ class agent:
 			print(f'Utility of operator {operator} at state {stateIndex} is now {newUtility}')
 			input('Press enter to start next step')
 
-	def SARSALearn(self, operator, previousState, nextState, reward):
-		# update QTable entry of applying operator from policy to previousState
-		# utility <- (1 - learningRate ) *utility + learningRate * (reward + discountFactor * utility of operator returned by applying policy to nextState)
-		
-		# get original utility of previousState
-		indexDict = {'north': 0, 'east': 1, 'south': 2, 'west': 3, 'pickup': 4, 'dropoff': 5}
-		operatorIndex = indexDict[operator]
-		stateIndex = previousState.hashState()
-		oldUtility = PDWorld.QTable[stateIndex][operatorIndex]
-
-		# get utility of applying operator returned by policy at nextState
-		nextStateOperators = nextState.getOperators()
-		nextOperator = self.policy()
-		nextUtility = nextStateOperators[nextOperator]
-		
-		# apply Q-learning to utility of operator at previousState
-		newUtility = (1 - self.learningRate) * oldUtility + self.learningRate * (reward + self.discountFactor * nextUtility)
-		PDWorld.QTable[stateIndex][operatorIndex] = newUtility
-
 if __name__ == "__main__":
-	PDWorld = environment(debug=True)
+	PDWorld = environment(debug=False)
 	PDWorld.bot.setPolicy(PDWorld.bot.PRandom)
+	PDWorld.bot.setLearn('QLearn')
 
 	agentReward = []
 	epoch = []
@@ -260,7 +251,7 @@ if __name__ == "__main__":
 		agentReward.append(PDWorld.bot.bankAccount)
 	
 	
-	PDWorld.bot.setPolicy(PDWorld.bot.PExploit)
+	PDWorld.bot.setPolicy(PDWorld.bot.PRandom)
 	for i in range(500, 6000):
 		if PDWorld.bot.step():
 			epoch.append(i - epochStart)
@@ -273,7 +264,7 @@ if __name__ == "__main__":
 	print('agent holding block: ', PDWorld.bot.currentState.agentCarryingBlock)
 	print('epoch: ', epoch)
 
-	print(PDWorld.QTable[0:25])
+	# print(PDWorld.QTable[0:25])
 
 	# plot first layer of QTable
 	plot.plotQTable(PDWorld.QTable, 0)
