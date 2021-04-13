@@ -43,15 +43,59 @@ def plotQTable(QTable, frame):
 				ax.text(i + 0.3 * dir[1], j + 0.3 * dir[0], f'{v:.2f}', color='k' if 0.2 < nv < 0.8 else 'w', ha='center', va='center')
 	fig.colorbar(imgs[0], ax=ax)
 
-	ax.set_xticks(range(5))
-	ax.set_yticks(range(5))
+	plt.xticks(range(5), range(1, 6))
+	plt.yticks(range(5), range(1, 6))
 	ax.invert_yaxis()
 	ax.margins(x=0, y=0)
 	ax.set_aspect('equal', 'box')  # square cells
+
+	# put QTable description in title
+	description = ''
+	if frame >= 4:
+		# only report dropoff locations that are full
+		pd = [int(x) for x in bin(frame-4)[2:]]
+		if pd[3] == 1: # first
+			description += 'First'
+		if pd[2] == 1: # second
+			if description != '':
+				description += ', second'
+			else:
+				description += 'Second'
+		if pd[1] == 1: # third
+			if description != '':
+				description += ', third'
+			else:
+				description += 'Third'
+		if pd[0] == 1: # fourth
+			if description != '':
+				description += ', fourth'
+			else:
+				description += 'Fourth'
+		if description == '':
+			description += 'No'
+		description += ' dropoff(s) full'
+	else:
+		# only report pickup locations that are empty
+		pd = [int(x) for x in bin(frame+4)[3:]]
+		if pd[1] == 1:
+			description += 'First'
+		if pd[0] == 1:
+			if description != '':
+				description += ', second'
+			else:
+				description += 'Second'
+		if description == '':
+			description += 'No'
+		description += ' pickup(s) full'
+
+	ax.set(title=f'QTable Frame {frame+1}\n{description}')
 	plt.tight_layout()
 	plt.show()
 
-def plotLineGraph(arr):
-	plt.plot(arr, linestyle='-', color='red')
+def plotLineGraph(arr, title):
+	fig, ax = plt.subplots()
+	ax.plot(arr, linestyle='-', color='red')
+	ax.set(title=title)
+	ax.set_ylim(min(0, min(arr)))
 	plt.grid(b=True, axis='y', linestyle='--')
 	plt.show()
