@@ -31,7 +31,7 @@ def plotQTable(QTable, frame):
 	values = extractValues(5, 5, QTable[frame*25:(frame+1)*25])
 	triangul = triangulation_for_triheatmap(5, 5)
 	[plt.Normalize(-0.5, 1) for _ in range(4)]
-	fig, ax = plt.subplots()
+	fig, ax = plt.subplots(figsize=(8,7.5))
 	imgs = [ax.tripcolor(t, val.ravel(), cmap='RdYlGn', vmin=np.min(values), vmax=np.max(values), ec='white')
         for t, val in zip(triangul, values)]
 
