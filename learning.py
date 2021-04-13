@@ -257,7 +257,7 @@ if __name__ == "__main__":
 			PDWorld.bot.bankAccount = 0
 			# TODO: plot Q table when terminal state reached
 	
-	PDWorld.bot.setPolicy(PDWorld.bot.PExploit)
+	PDWorld.bot.setPolicy(PDWorld.bot.PGreedy)
 	for i in range(500, 6000):
 		if PDWorld.bot.step():
 			epochTime.append(i - epochStart)
@@ -279,7 +279,7 @@ if __name__ == "__main__":
 	plotQTable(PDWorld.QTable, 0)
 
 	# plot graph of agent reward
-	plotLineGraph(agentReward)
+	plotLineGraph('r', agentReward, PDWorld)
 
 	# plot graph of epoch time
-	plotLineGraph(epochTime)
+	plotLineGraph('e', epochTime, PDWorld)

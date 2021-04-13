@@ -86,16 +86,25 @@ def plotQTable(QTable, frame):
 				description += 'Second'
 		if description == '':
 			description += 'No'
-		description += ' pickup(s) full'
+		description += ' pickup(s) empty'
 
 	ax.set(title=f'QTable Frame {frame+1}\n{description}')
 	plt.tight_layout()
 	plt.show()
 
-def plotLineGraph(arr, title):
+def plotLineGraph(b, arr, env):
+	if env.bot.policy == env.bot.PRandom:
+		policy = 'PRandom'
+	elif env.bot.policy == env.bot.PGreedy:
+		policy = 'PGreedy'
+	else:
+		policy = 'PExploit'
 	fig, ax = plt.subplots()
-	ax.plot(arr, linestyle='-', color='red')
-	ax.set(title=title)
+	ax.plot(arr, linestyle='-', color='red', marker='.')
+	if b == 'r':
+		ax.set(title=f'Agent Reward vs Epoch: {policy} Policy\nLearning Rate = {env.bot.learningRate}, Discount Factor = {env.bot.discountFactor}')
+	else: 
+		ax.set(title=f'Epoch Period: {policy} Policy\nLearning Rate = {env.bot.learningRate}, Discount Factor = {env.bot.discountFactor}')
 	ax.set_ylim(min(0, min(arr)))
 	plt.grid(b=True, axis='y', linestyle='--')
 	plt.show()
