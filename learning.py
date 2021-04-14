@@ -2,6 +2,7 @@ import numpy as np
 import random
 from plot import plotQTable, plotLineGraph
 from copy import deepcopy
+import os
 
 class environment:
 	def __init__(self, debug = False):
@@ -12,9 +13,26 @@ class environment:
 		self.pickupValues = [8, 8]
 		self.dropoffValues = [0, 0, 0, 0]
 		# Q-table maps a (state, operator) pair to a utility
-		self.QTable = np.zeros([500, 6]) # TODO: add function to export this table to a .csv
+		self.QTable = np.zeros([500, 6])		
 		self.bot = agent()
 		self.debug = debug
+
+	def setEdges(self):
+		# set invalid QTable values to min value of table
+		for i in range(20):
+			topLeftIndex = i*25
+			maxFrameValue = np.max(self.QTable[topLeftIndex:topLeftIndex+24])
+			minFrameValue = np.min(self.QTable[topLeftIndex:topLeftIndex+24])
+			r = (maxFrameValue - minFrameValue)
+			value = minFrameValue - 0.1 * r
+			for j in range(5):
+				self.QTable[topLeftIndex+j][0] = value # north
+			for j in range(5):
+				self.QTable[topLeftIndex+20+j][2] = value # south
+			for j in range(5):
+				self.QTable[topLeftIndex+(j*5+4)][1] = value # east
+			for j in range(5):
+				self.QTable[topLeftIndex + j*5][3] = value # west
 
 class state:
 	def __init__(self):
@@ -67,10 +85,25 @@ class agent:
 	def __init__(self):
 		self.currentState = state()
 		self.bankAccount = 0 # keeps track of cumulative reward
+
+	# setter functions
 	def setLearningRate(self, lr):
 		self.learningRate = lr
 	def setDiscountFactor(self, df):
 		self.discountFactor = df
+	def setPolicy(self, func):
+		self.policy = func
+	def setLearn(self, learn):
+		self.learning = learn
+	
+	# getter functions
+	def getPolicy(self):
+		if self.policy == self.PRandom:
+			return 'PRandom'
+		elif self.policy == self.PGreedy:
+			return 'PGreedy'
+		else:
+			return 'PExploit'
 	
 	def step(self):
 		# execute policy to make one action and update q value
@@ -155,11 +188,6 @@ class agent:
 		else:
 			return self.PGreedy()
 
-	def setPolicy(self, func):
-		self.policy = func
-	def setLearn(self, learn):
-		self.learning = learn
-
 	# Define operators -- note that all operators are checked in advance by getOperators()
 	def goNorth(self):
 		self.currentState.position[0] -= 1
@@ -190,6 +218,13 @@ class agent:
 		location = PDWorld.dropoffLocations.index(tuple(self.currentState.position))
 		PDWorld.dropoffValues[location] += 1
 		self.currentState.dropoffFull[location] = PDWorld.dropoffValues[location] == 4
+		# check if agent filled first dropoff location
+		if sum(self.currentState.dropoffFull) == 1 and not os.path.exists('img/firstdropoff'):
+			# only one dropoff location is full
+				os.makedirs('img/firstdropoff')
+				for i in range(20):
+					plotQTable(PDWorld.QTable, i, False, True, 'img/firstdropoff/')
+
 		self.currentState.agentCarryingBlock = False
 		self.bankAccount += 13
 		return 13
@@ -241,13 +276,13 @@ class agent:
 if __name__ == "__main__":
 	PDWorld = environment(debug=False)
 	PDWorld.bot.setPolicy(PDWorld.bot.PRandom)
-	PDWorld.bot.setLearn('QLearn')
+	PDWorld.bot.setLearn('SARSALearn')
 	PDWorld.bot.setLearningRate(0.3)
 	PDWorld.bot.setDiscountFactor(0.5)
 
 	agentReward = []
 	epochTime = []
-	epochStart = 0
+	epochStart = -1
 
 	for i in range(500):
 		if PDWorld.bot.step():
@@ -256,8 +291,12 @@ if __name__ == "__main__":
 			agentReward.append(PDWorld.bot.bankAccount)
 			PDWorld.bot.bankAccount = 0
 			# TODO: plot Q table when terminal state reached
+			if not os.path.exists(f'img/term{len(epochTime)}'):
+				os.makedirs(f'img/term{len(epochTime)}')
+			for j in range(20):
+				plotQTable(PDWorld.QTable, j, False, True, f'img/term{len(epochTime)}')
 	
-	PDWorld.bot.setPolicy(PDWorld.bot.PGreedy)
+	PDWorld.bot.setPolicy(PDWorld.bot.PExploit)
 	for i in range(500, 6000):
 		if PDWorld.bot.step():
 			epochTime.append(i - epochStart)
@@ -265,21 +304,24 @@ if __name__ == "__main__":
 			agentReward.append(PDWorld.bot.bankAccount)
 			PDWorld.bot.bankAccount = 0
 			# TODO: plot Q table when terminal state reached
-	
-	"""
-	print(f'number of complete deliveries: {len(epochTime)}')
-	print(f'drop-off values: {PDWorld.dropoffValues}')
-	print(f'pick-up values: {PDWorld.pickupValues}')
-	print(f'agent holding block: {PDWorld.bot.currentState.agentCarryingBlock}')
-	print(f'epoch: {epochTime}')
-	print(PDWorld.QTable[0:25])
-	"""
+			if not os.path.exists(f'img/term{len(epochTime)}'):
+				os.makedirs(f'img/term{len(epochTime)}')
+			for j in range(20):
+				plotQTable(PDWorld.QTable, j, False, True, f'img/term{len(epochTime)}')
 
-	# plot first layer of QTable
-	plotQTable(PDWorld.QTable, 0)
+	# set utility of invalid operators on table edges
+	PDWorld.setEdges()
 
-	# plot graph of agent reward
-	plotLineGraph('r', agentReward, PDWorld)
+	if not os.path.exists('img/final'):
+		os.makedirs('img/final')
 
-	# plot graph of epoch time
-	plotLineGraph('e', epochTime, PDWorld)
+	# save final layers of QTable
+	for i in range(20):
+		plotQTable(PDWorld.QTable, i, False, True, 'img/final')
+
+	# save graphs of agent reward and epoch time
+	title = f'Agent Reward vs Epoch: {PDWorld.bot.getPolicy()} Policy\nLearning Rate = {PDWorld.bot.learningRate}, Discount Factor = {PDWorld.bot.discountFactor}'
+	plotLineGraph(agentReward, PDWorld, False, True, 'img/final/reward', title)
+
+	title = f'Epoch Period: {PDWorld.bot.getPolicy()} Policy\nLearning Rate = {PDWorld.bot.learningRate}, Discount Factor = {PDWorld.bot.discountFactor}'
+	plotLineGraph(epochTime, PDWorld, False, True, 'img/final/epoch', title)

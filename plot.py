@@ -27,21 +27,25 @@ def triangulation_for_triheatmap(M, N):
                   for j in range(N) for i in range(M)]
     return [Triangulation(x, y, triangles) for triangles in [trianglesN, trianglesE, trianglesS, trianglesW]]
 
-def plotQTable(QTable, frame):
+def plotQTable(QTable, frame, display=True, save=False, path = ''):
 	values = extractValues(5, 5, QTable[frame*25:(frame+1)*25])
+	if np.min(values) == np.max(values):
+		return
 	triangul = triangulation_for_triheatmap(5, 5)
 	[plt.Normalize(-0.5, 1) for _ in range(4)]
-	fig, ax = plt.subplots(figsize=(8,7.5))
-	imgs = [ax.tripcolor(t, val.ravel(), cmap='RdYlGn', vmin=np.min(values), vmax=np.max(values), ec='white')
-        for t, val in zip(triangul, values)]
+	_, ax = plt.subplots(figsize=(7, 7))
+	[ax.tripcolor(t, val.ravel(), cmap='RdYlGn', vmin=np.min(values), vmax=np.max(values), ec='white') for t, val in zip(triangul, values)]
 
 	for val, dir in zip(values, [(-1, 0), (0, 1), (1, 0), (0, -1)]):
 		for i in range(5):
 			for j in range(5):
 				v = val[j, i]
-				nv = (v - np.min(values)) / abs(np.max(values) - np.min(values)) # normalize value to determine text color
+				if np.min(values) == np.max(values):
+					nv = 0.6
+				else:
+					nv = (v - np.min(values)) / abs(np.max(values) - np.min(values)) # normalize value to determine text color
 				ax.text(i + 0.3 * dir[1], j + 0.3 * dir[0], f'{v:.2f}', color='k' if 0.2 < nv < 0.8 else 'w', ha='center', va='center')
-	fig.colorbar(imgs[0], ax=ax)
+	# fig.colorbar(imgs[0], ax=ax)
 
 	plt.xticks(range(5), range(1, 6))
 	plt.yticks(range(5), range(1, 6))
@@ -53,7 +57,7 @@ def plotQTable(QTable, frame):
 	description = ''
 	if frame >= 4:
 		# only report dropoff locations that are full
-		pd = [int(x) for x in bin(frame-4)[2:]]
+		pd = [int(x) for x in bin(frame-4+16)[3:]]
 		if pd[3] == 1: # first
 			description += 'First'
 		if pd[2] == 1: # second
@@ -90,21 +94,21 @@ def plotQTable(QTable, frame):
 
 	ax.set(title=f'QTable Frame {frame+1}\n{description}')
 	plt.tight_layout()
-	plt.show()
+	if display == True:
+		plt.show()
+	if save == True:
+		plt.savefig(f'{path}/frame{frame+1}')
+	
+	plt.close()
 
-def plotLineGraph(b, arr, env):
-	if env.bot.policy == env.bot.PRandom:
-		policy = 'PRandom'
-	elif env.bot.policy == env.bot.PGreedy:
-		policy = 'PGreedy'
-	else:
-		policy = 'PExploit'
-	fig, ax = plt.subplots()
+def plotLineGraph(arr, env, display=True, save=False, path = '', title = ''):
+	_, ax = plt.subplots()
 	ax.plot(arr, linestyle='-', color='red', marker='.')
-	if b == 'r':
-		ax.set(title=f'Agent Reward vs Epoch: {policy} Policy\nLearning Rate = {env.bot.learningRate}, Discount Factor = {env.bot.discountFactor}')
-	else: 
-		ax.set(title=f'Epoch Period: {policy} Policy\nLearning Rate = {env.bot.learningRate}, Discount Factor = {env.bot.discountFactor}')
 	ax.set_ylim(min(0, min(arr)))
+	ax.set(title=title)
 	plt.grid(b=True, axis='y', linestyle='--')
-	plt.show()
+	if display == True:
+		plt.show()
+	if save == True:
+		plt.savefig(path)
+	plt.close()
